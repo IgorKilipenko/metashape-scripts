@@ -4,6 +4,7 @@
         "Metashape",
         "Orthomosaic",
         "preselection",
+        "Reprojection",
         "scandir",
         "tiepoint"
     ]
