@@ -26,19 +26,21 @@ def execute_align():
     sensor = chunk.cameras[0].sensor
     sensor.rolling_shutter = Metashape.Shutter.Full
 
-    chunk.matchPhotos(downscale=downscale, keypoint_limit=80000, tiepoint_limit=80000,
+    chunk.matchPhotos(downscale=downscale, keypoint_limit=80000, tiepoint_limit=8000,
                       generic_preselection=True, reference_preselection=True,
                       reference_preselection_mode=Metashape.ReferencePreselectionMode.ReferencePreselectionSource,
                       reset_matches=True, filter_stationary_points=True)
     doc.save()
 
-    chunk.alignCameras()
+    chunk.alignCameras(min_image=2, adaptive_fitting=False, reset_alignment=True,
+                       subdivide_task=True)
     doc.save()
 
     # Remove bad points
     filter = Metashape.TiePoints.Filter()
     filter.init(chunk, criterion=Metashape.TiePoints.Filter.ImageCount)
     filter.removePoints(threshold=2)
+    # filter.selectPoints(threshold=2)
     doc.save()
 
 
