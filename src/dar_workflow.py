@@ -3,48 +3,65 @@ import os
 import sys
 import time
 
-downscale = 2
+downscale = 1
+
 
 def get_doc():
     return Metashape.app.document
 
+
 def check_project():
     doc = get_doc()
-    if not len(doc.chunks):
+    if not len(doc.chunks) or not len(doc.chunk.cameras):
         raise Exception("Empty project, script aborted")
-    
+
+
 def execute_align():
     doc = get_doc()
     check_project()
 
     chunk = doc.chunk
 
+    # Set rolling shutter compensation as full model
+    sensor = chunk.cameras[0].sensor
+    sensor.rolling_shutter = Metashape.Shutter.Full
+
     chunk.matchPhotos(downscale=downscale, keypoint_limit=80000, tiepoint_limit=80000,
-                    generic_preselection=True, reference_preselection=True,
-                    reference_preselection_mode=Metashape.ReferencePreselectionMode.ReferencePreselectionSource,
-                    reset_matches=True, filter_stationary_points=True)
+                      generic_preselection=True, reference_preselection=True,
+                      reference_preselection_mode=Metashape.ReferencePreselectionMode.ReferencePreselectionSource,
+                      reset_matches=True, filter_stationary_points=True)
     doc.save()
-    
+
     chunk.alignCameras()
     doc.save()
 
-def execute_dar_workflow():   
+    # Remove bad points
+    filter = Metashape.TiePoints.Filter()
+    filter.init(chunk, criterion=Metashape.TiePoints.Filter.ImageCount)
+    filter.removePoints(threshold=2)
+    doc.save()
+
+
+def execute_dar_workflow():
     doc = get_doc()
     check_project()
     chunk = doc.chunk
-    
-    # chunk.alignCameras()
-    # doc.save()
-    
-    chunk.buildDepthMaps(downscale=downscale, filter_mode=Metashape.MildFiltering)
-    doc.save()
 
-    #chunk.buildModel(source_data=Metashape.DepthMapsData)
-    #doc.save()
+    # chunk.buildModel(source_data=Metashape.DepthMapsData)
+    # doc.save()
+
+    chunk.optimizeCameras(fit_f=True, fit_cx=True, fit_cy=True, fit_b1=False, fit_b2=False, fit_k1=True,
+                          fit_k2=True, fit_k3=True, fit_k4=False, fit_p1=True, fit_p2=True, fit_corrections=True,
+                          adaptive_fitting=False, tiepoint_covariance=False)
+    doc.save()
 
     has_transform = chunk.transform.scale and chunk.transform.rotation and chunk.transform.translation
 
     if has_transform:
+        chunk.buildDepthMaps(downscale=downscale,
+                             filter_mode=Metashape.MildFiltering)
+        doc.save()
+
         chunk.buildPointCloud()
         doc.save()
 
@@ -55,6 +72,7 @@ def execute_dar_workflow():
         doc.save()
 
     print('Processing finished.')
+
 
 # Checking compatibility
 compatible_major_version = "2.0"
