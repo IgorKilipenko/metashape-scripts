@@ -3,15 +3,19 @@ import os
 import sys
 import time
 
-def check_project(doc):
+downscale = 2
+
+def get_doc():
+    return Metashape.app.document
+
+def check_project():
+    doc = get_doc()
     if not len(doc.chunks):
         raise Exception("Empty project, script aborted")
-
-def execute_dar_workflow():
-    downscale = 2
     
-    doc = Metashape.app.document
-    check_project(doc=doc)
+def execute_align():
+    doc = get_doc()
+    check_project()
 
     chunk = doc.chunk
 
@@ -20,15 +24,23 @@ def execute_dar_workflow():
                     reference_preselection_mode=Metashape.ReferencePreselectionMode.ReferencePreselectionSource,
                     reset_matches=True, filter_stationary_points=True)
     doc.save()
-
+    
     chunk.alignCameras()
     doc.save()
 
+def execute_dar_workflow():   
+    doc = get_doc()
+    check_project()
+    chunk = doc.chunk
+    
+    # chunk.alignCameras()
+    # doc.save()
+    
     chunk.buildDepthMaps(downscale=downscale, filter_mode=Metashape.MildFiltering)
     doc.save()
 
-    chunk.buildModel(source_data=Metashape.DepthMapsData)
-    doc.save()
+    #chunk.buildModel(source_data=Metashape.DepthMapsData)
+    #doc.save()
 
     has_transform = chunk.transform.scale and chunk.transform.rotation and chunk.transform.translation
 
@@ -51,6 +63,10 @@ if found_major_version != compatible_major_version:
     raise Exception("Incompatible Metashape version: {} != {}".format(
         found_major_version, compatible_major_version))
 
-label = "Scripts/dar_workflow"
-Metashape.app.addMenuItem(label, execute_dar_workflow)
-print("To execute this script press {}".format(label))
+label = "Scripts/Дар/Выравнивание снимков"
+Metashape.app.addMenuItem(label, execute_align)
+print("To execute align press {}".format(label))
+
+label_align = "Scripts/Дар/Обработка"
+Metashape.app.addMenuItem(label_align, execute_dar_workflow)
+print("To execute align press {}".format(label_align))
