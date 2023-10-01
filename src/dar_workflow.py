@@ -3,7 +3,7 @@ import os
 import sys
 import time
 
-downscale = 1
+downscale = 2   # High
 
 
 def get_doc():
@@ -60,17 +60,31 @@ def execute_dar_workflow():
     has_transform = chunk.transform.scale and chunk.transform.rotation and chunk.transform.translation
 
     if has_transform:
+        print("Start buildDepthMaps")
         chunk.buildDepthMaps(downscale=downscale,
                              filter_mode=Metashape.MildFiltering)
+        print("End buildDepthMaps")
         doc.save()
 
-        chunk.buildPointCloud()
+        print("Start buildPointCloud")
+        chunk.buildPointCloud(source_data=Metashape.DepthMapsData, point_colors=True, point_confidence=True,
+                              keep_depth=True, max_neighbors=100, uniform_sampling=True, points_spacing=0.1,
+                              subdivide_task=True, workitem_size_cameras=20, max_workgroup_size=100)
+        print("End buildPointCloud")
         doc.save()
 
-        chunk.buildDem(source_data=Metashape.PointCloudData)
+        print("Start buildDem")
+        chunk.buildDem(source_data=Metashape.PointCloudData, interpolation=Metashape.EnabledInterpolation, flip_x=False,
+                       flip_y=False, flip_z=False, resolution=0, subdivide_task=True, workitem_size_tiles=10, max_workgroup_size=100)
+        print("End buildDem")
         doc.save()
 
-        chunk.buildOrthomosaic(surface_data=Metashape.ElevationData)
+        print("Start buildOrthomosaic")
+        chunk.buildOrthomosaic(surface_data=Metashape.ElevationData,  blending_mode=Metashape.MosaicBlending, fill_holes=True,
+                               ghosting_filter=False, cull_faces=False, refine_seamlines=False, resolution=0, resolution_x=0, resolution_y=0,
+                               flip_x=False, flip_y=False, flip_z=False, subdivide_task=True, workitem_size_cameras=20,
+                               workitem_size_tiles=10, max_workgroup_size=100)
+        print("End buildOrthomosaic")
         doc.save()
 
     print('Processing finished.')
